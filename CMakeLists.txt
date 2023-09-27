@@ -20,6 +20,8 @@ project(rRootage)
 # to build Vita specific artifacts (self/vpk).
 include("${VITASDK}/share/vita.cmake" REQUIRED)
 
+set (CMAKE_CXX_STANDARD 14)
+
 ## Configuration options for this app
 # Display name (under bubble in LiveArea)
 set(VITA_APP_NAME "rRootage")
@@ -31,7 +33,7 @@ set(VITA_VERSION  "01.00")
 
 ## Flags and includes for building
 # Note that we make sure not to overwrite previous flags
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -g")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 # Optional. You can specify more param.sfo flags this way.
 set(VITA_MKSFOEX_FLAGS "${VITA_MKSFOEX_FLAGS} -d PARENTAL_LEVEL=1")
@@ -40,6 +42,17 @@ set(VITA_MKSFOEX_FLAGS "${VITA_MKSFOEX_FLAGS} -d PARENTAL_LEVEL=1")
 include_directories(
     $ENV{VITASDK}/arm-vita-eabi/include/SDL
     $ENV{VITASDK}/arm-vita-eabi/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/bulletml/tinyxml
+
+    # ${CMAKE_CURRENT_SOURCE_DIR}/src/bulletml
+    # ${CMAKE_CURRENT_SOURCE_DIR}/src/bulletml/boost
+    # ${CMAKE_CURRENT_SOURCE_DIR}/src/bulletml/boost/config
+    # ${CMAKE_CURRENT_SOURCE_DIR}/src/bulletml/boost/detail
+    # ${CMAKE_CURRENT_SOURCE_DIR}/src/bulletml/boost/config/compiler
+    # ${CMAKE_CURRENT_SOURCE_DIR}/src/bulletml/boost/config/platform
+    # ${CMAKE_CURRENT_SOURCE_DIR}/src/bulletml/boost/config/stdlib
+  
+  
     
 
 )
@@ -48,6 +61,7 @@ include_directories(
 # ${CMAKE_CURRENT_BINARY_DIR} lets you use any library currently being built
 link_directories(
   ${CMAKE_CURRENT_BINARY_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
   $ENV{VITASDK}/arm-vita-eabi/lib/
 )
 
@@ -72,12 +86,17 @@ add_executable(${PROJECT_NAME}
   src/shot.c
   src/soundmanager.c
   src/vector.c
-  src/attractmanager.c
+
   
 )
 
 # Library to link to (drop the -l prefix). This will mostly be stubs.
 target_link_libraries(${PROJECT_NAME}
+  
+  vitaGL
+  bulletml
+  tinyxml
+
   SDL_gfx
   SDL_mixer
   SDL_image
@@ -93,9 +112,10 @@ target_link_libraries(${PROJECT_NAME}
   FLAC
   pthread
   imgui
-  vitaGL
+  
   vitashark
   mathneon
+
   
   SceIofilemgrForDriver_stub 
   SceLibKernel_stub
@@ -127,4 +147,14 @@ vita_create_vpk(${PROJECT_NAME}.vpk ${VITA_TITLEID} ${PROJECT_NAME}.self
   FILE sce_sys/livearea/contents/bg.png sce_sys/livearea/contents/bg.png
   FILE sce_sys/livearea/contents/startup.png sce_sys/livearea/contents/startup.png
   FILE sce_sys/livearea/contents/template.xml sce_sys/livearea/contents/template.xml
+  FILE sounds sounds
+  FILE simple simple
+  FILE reversible reversible
+  FILE psy psy
+  FILE normal normal
+  FILE morph morph
+  FILE morph_heavy morph_heavy
+  FILE images images
+
+
 )

@@ -11,8 +11,8 @@
  */
 #include "SDL.h"
 
-#include <GL/gl.h>
-#include <GL/glu.h>
+#include <vitaGL.h>
+//#include <GL/glu.h>
 
 #define PAD_UP 1
 #define PAD_DOWN 2

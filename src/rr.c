@@ -9,11 +9,14 @@
  *
  * @version $Revision: 1.4 $
  */
-#include "SDL.h"
+#include <SDL.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+
+#define printf sceClibPrintf
+
 
 #include "rr.h"
 #include "screen.h"
@@ -195,7 +198,7 @@ static void draw() {
 static int accframe = 0;
 
 static void usage(char *argv0) {
-  fprintf(stderr, "Usage: %s [-lowres] [-nosound] [-fullscreen] [-reverse] [-nowait] [-accframe]\n", argv0);
+  printf("Usage: %s [-lowres] [-nosound] [-fullscreen] [-reverse] [-nowait] [-accframe]\n", argv0);
 }
 
 static void parseArgs(int argc, char *argv[]) {
@@ -240,8 +243,9 @@ int main(int argc, char *argv[]) {
   long nowTick;
   int frame;
   int buttons;
+  int passes = 0;
 
-  windowMode = 1;
+  windowMode = 0;
   parseArgs(argc, argv);
 
   initDegutil();
@@ -253,32 +257,37 @@ int main(int argc, char *argv[]) {
     SDL_PollEvent(&event);
     keys = SDL_GetKeyState(NULL);
     buttons = getButtonState();
+
     if ( keys[SDLK_ESCAPE] == SDL_PRESSED || event.type == SDL_QUIT ) done = 1;
+
     if ( buttons & PAD_BUTTONP ) {
       if ( !pPrsd ) {
-	if ( status == IN_GAME ) {
-	  status = PAUSE;
-	} else if ( status == PAUSE ) {
-	  status = IN_GAME;
-	}
+        if ( status == IN_GAME ) {
+          status = PAUSE;
+        } else if ( status == PAUSE ) {
+          status = IN_GAME;
+        }
       }
       pPrsd = 1;
     } else {
       pPrsd = 0;
     }
+
     if ( event.type == SDL_VIDEORESIZE ) {
       resized(event.resize.w, event.resize.h);
     }
 
     nowTick = SDL_GetTicks();
+
     frame = (int)(nowTick-prvTickCount) / interval;
+
     if ( frame <= 0 ) {
       frame = 1;
       SDL_Delay(prvTickCount+interval-nowTick);
       if ( accframe ) {
-	prvTickCount = SDL_GetTicks();
+        prvTickCount = SDL_GetTicks();
       } else {
-	prvTickCount += interval;
+        prvTickCount += interval;
       }
     } else if ( frame > 5 ) {
       frame = 5;
@@ -286,6 +295,7 @@ int main(int argc, char *argv[]) {
     } else {
       prvTickCount += frame*interval;
     }
+
     for ( i=0 ; i<frame ; i++ ) {
       move();
       tick++;
@@ -294,7 +304,13 @@ int main(int argc, char *argv[]) {
     drawGLSceneStart();
     draw();
     drawGLSceneEnd();
-    swapGLScene();
+    vglSwapBuffers(GL_FALSE);
+    //swapGLScene();
+    printf("==end of frame %i==\n\n", passes);
+    passes++;
+
+
+
   }
   quitLast();
   return 0;

@@ -15,6 +15,8 @@
 #include <signal.h>
 #include <string.h>
 
+#define printf sceClibPrintf
+
 #include "SDL_mixer.h"
 #include "soundmanager.h"
 
@@ -75,7 +77,7 @@ static void loadSounds() {
     strcpy(name, "sounds/");
     strcat(name, musicFileName[i]);
     if ( NULL == (music[i] = Mix_LoadMUS(name)) ) {
-      fprintf(stderr, "Couldn't load: %s\n", name);
+      printf("Couldn't load: %s\n", name);
       useAudio = 0;
       return;
     }
@@ -84,7 +86,7 @@ static void loadSounds() {
     strcpy(name, "sounds/");
     strcat(name, chunkFileName[i]);
     if ( NULL == (chunk[i] = Mix_LoadWAV(name)) ) {
-      fprintf(stderr, "Couldn't load: %s\n", name);
+      printf("Couldn't load: %s\n", name);
       useAudio = 0;
       return;
     }
@@ -98,7 +100,7 @@ void initSound() {
   int audio_buffers;
 
   if ( SDL_InitSubSystem(SDL_INIT_AUDIO) < 0 ) {
-    fprintf(stderr, "Unable to initialize SDL_AUDIO: %s\n", SDL_GetError());
+    printf("Unable to initialize SDL_AUDIO: %s\n", SDL_GetError());
     return;
   }
 
@@ -108,7 +110,7 @@ void initSound() {
   audio_buffers = 4096;
   
   if (Mix_OpenAudio(audio_rate, audio_format, audio_channels, audio_buffers) < 0) {
-    fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
+    printf("Couldn't open audio: %s\n", SDL_GetError());
     return;
   } else {
     Mix_QuerySpec(&audio_rate, &audio_format, &audio_channels);

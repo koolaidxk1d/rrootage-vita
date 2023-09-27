@@ -9,10 +9,13 @@
  *
  * @version $Revision: 1.6 $
  */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "SDL.h"
+#include <SDL.h>
+#include <vitaGL.h>
 
 #include <math.h>
 #include <string.h>
@@ -25,6 +28,9 @@
 #include "letterrender.h"
 #include "boss_mtd.h"
 
+#define printf sceClibPrintf
+
+
 #define FAR_PLANE 720
 
 #define SCREEN_WIDTH 640
@@ -33,6 +39,8 @@
 #define LOWRES_SCREEN_HEIGHT 240
 
 static int screenWidth, screenHeight;
+static int popcount;
+static int pushcount;
 
 // Reset viewport when the screen is resized.
 static void screenResized() {
@@ -60,11 +68,12 @@ void resized(int width, int height) {
 
 // Init OpenGL.
 static void initGL() {
+  //vglInit(0x800000);
+  vglInitExtended(16 * 1024 * 1024 , 960, 544, 16 * 1024 * 1024, SCE_GXM_MULTISAMPLE_4X);
   glViewport(0, 0, screenWidth, screenHeight);
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-
   glLineWidth(1);
-  glEnable(GL_LINE_SMOOTH);
+  //glEnable(GL_LINE_SMOOTH);
 
   glBlendFunc(GL_SRC_ALPHA, GL_ONE);
   glEnable(GL_BLEND);
@@ -87,7 +96,7 @@ void loadGLTexture(char *fileName, GLuint *texture) {
   strcat(name, fileName);
   surface = SDL_LoadBMP(name);
   if ( !surface ) {
-    fprintf(stderr, "Unable to load texture: %s\n", SDL_GetError());
+    printf("Unable to load texture: %s\n", SDL_GetError());
     SDL_Quit();
     exit(1);
   }
@@ -131,29 +140,31 @@ void initSDL() {
     screenHeight = SCREEN_HEIGHT;
   }
 
+
   /* Initialize SDL */
   if ( SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) < 0 ) {
-    fprintf(stderr, "Unable to initialize SDL: %s\n", SDL_GetError());
+    printf("Unable to initialize SDL: %s\n", SDL_GetError());
     exit(1);
   }
-
   /* Create an OpenGL screen */
+  //SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
   if ( windowMode ) {
     videoFlags = SDL_OPENGL | SDL_RESIZABLE;
   } else {
     if ( !lowres ) {
       // Use native desktop resolution if -lowres is not specified.
-      screenWidth = 0;
-      screenHeight = 0;
+      screenWidth = 640;
+      screenHeight = 480;
     }
     videoFlags = SDL_OPENGL | SDL_FULLSCREEN;
   } 
+
   if ( SDL_SetVideoMode(screenWidth, screenHeight, 0, videoFlags) == NULL ) {
-    fprintf(stderr, "Unable to create OpenGL screen: %s\n", SDL_GetError());
+    printf("Unable to create OpenGL screen: %s\n", SDL_GetError());
     SDL_Quit();
     exit(2);
   }
-
+  
   SDL_Surface* videoSurface = SDL_GetVideoSurface();
   screenWidth = videoSurface->w;
   screenHeight = videoSurface->h;
@@ -164,10 +175,10 @@ void initSDL() {
   SDL_WM_SetCaption(CAPTION, NULL);
 
   initGL();
+  printf("initGL Success\n");
   loadGLTexture(STAR_BMP, &starTexture);
   loadGLTexture(SMOKE_BMP, &smokeTexture);
   loadGLTexture(TITLE_BMP, &titleTexture);
-
   SDL_ShowCursor(SDL_DISABLE);
 }
 
@@ -181,7 +192,7 @@ static int screenShakeType = 0;
 
 static void setEyepos() {
   float x, y;
-  glPushMatrix();
+  glPushMatrix(); pushcount++;
   if ( screenShakeCnt > 0 ) {
     switch ( screenShakeType ) {
     case 0:
@@ -212,10 +223,16 @@ void moveScreenShake() {
 void drawGLSceneStart() {
   glClear(GL_COLOR_BUFFER_BIT);
   setEyepos();
+
 }
 
 void drawGLSceneEnd() {
-  glPopMatrix();
+  glPopMatrix(); popcount++;
+
+  printf("pushcount %i, popcount %i\n", pushcount, popcount);
+  pushcount = 0;
+  popcount = 0;
+
 }
 
 void swapGLScene() {
@@ -224,7 +241,7 @@ void swapGLScene() {
 
 void drawBox(GLfloat x, GLfloat y, GLfloat width, GLfloat height, 
 	     int r, int g, int b) {
-  glPushMatrix();
+  glPushMatrix(); pushcount++;
   glTranslatef(x, y, 0);
   glColor4ub(r, g, b, 128);
   glBegin(GL_TRIANGLE_FAN);
@@ -240,7 +257,7 @@ void drawBox(GLfloat x, GLfloat y, GLfloat width, GLfloat height,
   glVertex3f( width,  height,  0);
   glVertex3f(-width,  height,  0);
   glEnd();
-  glPopMatrix();
+  glPopMatrix(); popcount++;
 }
 
 void drawLine(GLfloat x1, GLfloat y1, GLfloat z1,
@@ -263,19 +280,19 @@ void drawLinePart(GLfloat x1, GLfloat y1, GLfloat z1,
 
 void drawRollLineAbs(GLfloat x1, GLfloat y1, GLfloat z1,
 		     GLfloat x2, GLfloat y2, GLfloat z2, int r, int g, int b, int a, int d1) {
-  glPushMatrix();
+  glPushMatrix(); pushcount++;
   glRotatef((float)d1*360/1024, 0, 0, 1);
   glColor4ub(r, g, b, a);
   glBegin(GL_LINES);
   glVertex3f(x1, y1, z1);
   glVertex3f(x2, y2, z2);
   glEnd();
-  glPopMatrix();
+  glPopMatrix(); popcount++;
 }
 
 void drawRollLine(GLfloat x, GLfloat y, GLfloat z, GLfloat width,
 		  int r, int g, int b, int a, int d1, int d2) {
-  glPushMatrix();
+  glPushMatrix(); pushcount++;
   glTranslatef(x, y, z);
   glRotatef((float)d1*360/1024, 0, 0, 1);
   glRotatef((float)d2*360/1024, 1, 0, 0);
@@ -284,7 +301,7 @@ void drawRollLine(GLfloat x, GLfloat y, GLfloat z, GLfloat width,
   glVertex3f(0, -width, 0);
   glVertex3f(0,  width, 0);
   glEnd();
-  glPopMatrix();
+  glPopMatrix(); popcount++;
 }
 
 void drawSquare(GLfloat x1, GLfloat y1, GLfloat z1, 
@@ -309,7 +326,7 @@ void drawStar(int f, GLfloat x, GLfloat y, GLfloat z, int r, int g, int b, float
     glBindTexture(GL_TEXTURE_2D, smokeTexture);
   }
   glColor4ub(r, g, b, 255);
-  glPushMatrix();
+  glPushMatrix(); pushcount++;
   glTranslatef(x, y, z);
   glRotatef(rand()%360, 0.0f, 0.0f, 1.0f);
   glBegin(GL_TRIANGLE_FAN);
@@ -322,7 +339,7 @@ void drawStar(int f, GLfloat x, GLfloat y, GLfloat z, int r, int g, int b, float
   glTexCoord2f(0.0f, 0.0f);
   glVertex3f(-size,  size,  0);
   glEnd();
-  glPopMatrix();
+  glPopMatrix(); popcount++;
   glDisable(GL_TEXTURE_2D);
 }
 
@@ -398,7 +415,7 @@ void drawLaser(GLfloat x, GLfloat y, GLfloat width, GLfloat height,
 static void drawRing(GLfloat x, GLfloat y, int d1, int d2, int r, int g, int b) {
   int i, d;
   float x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4;
-  glPushMatrix();
+  glPushMatrix(); pushcount++;
   glTranslatef(x, y, 0);
   glRotatef((float)d1*360/1024, 0, 0, 1);
   glRotatef((float)d2*360/1024, 1, 0, 0);
@@ -415,13 +432,13 @@ static void drawRing(GLfloat x, GLfloat y, int d1, int d2, int r, int g, int b) 
     x1 = x3; y1 = y3; z1 = z3;
     x2 = x4; y2 = y4; z2 = z4;
   }
-  glPopMatrix();
+  glPopMatrix(); popcount++;
 }
 
 void drawCore(GLfloat x, GLfloat y, int cnt, int r, int g, int b) {
   int i;
   float cy;
-  glPushMatrix();
+  glPushMatrix(); pushcount++;
   glTranslatef(x, y, 0);
   glColor4ub(r, g, b, 255);
   glBegin(GL_TRIANGLE_FAN);
@@ -430,7 +447,7 @@ void drawCore(GLfloat x, GLfloat y, int cnt, int r, int g, int b) {
   glVertex3f( SHAPE_POINT_SIZE_L,  SHAPE_POINT_SIZE_L,  0);
   glVertex3f(-SHAPE_POINT_SIZE_L,  SHAPE_POINT_SIZE_L,  0);
   glEnd();
-  glPopMatrix();
+  glPopMatrix(); popcount++;
   cy = y - CORE_HEIGHT*2.5f;
   for ( i=0 ; i<4 ; i++, cy+=CORE_HEIGHT ) {
     drawRing(x, cy, (cnt*(4+i))&1023, (sctbl[(cnt*(5+i))&1023]/4)&1023, r, g, b);
@@ -443,7 +460,7 @@ void drawCore(GLfloat x, GLfloat y, int cnt, int r, int g, int b) {
 
 void drawShipShape(GLfloat x, GLfloat y, float d, int inv) {
   int i;
-  glPushMatrix();
+  glPushMatrix(); pushcount++;
   glTranslatef(x, y, 0);
   glColor4ub(255, 100, 100, 255);
   glBegin(GL_TRIANGLE_FAN);
@@ -453,7 +470,7 @@ void drawShipShape(GLfloat x, GLfloat y, float d, int inv) {
   glVertex3f(-SHAPE_POINT_SIZE_L,  SHAPE_POINT_SIZE_L,  0);
   glEnd();
   if ( inv ) {
-    glPopMatrix();
+    glPopMatrix(); popcount++;
     return;
   }
   glRotatef(d, 0, 1, 0);
@@ -472,7 +489,7 @@ void drawShipShape(GLfloat x, GLfloat y, float d, int inv) {
     glVertex3f(-SHIP_DRUM_WIDTH,  SHIP_DRUM_HEIGHT, SHIP_DRUM_R);
     glEnd();
   }
-  glPopMatrix();
+  glPopMatrix(); popcount++;
 }
 
 void drawBomb(GLfloat x, GLfloat y, GLfloat width, int cnt) {
@@ -521,7 +538,7 @@ void drawCircle(GLfloat x, GLfloat y, GLfloat width, int cnt,
 void drawShape(GLfloat x, GLfloat y, GLfloat size, int d, int cnt, int type,
 	       int r, int g, int b) {
   GLfloat sz, sz2;
-  glPushMatrix();
+  glPushMatrix(); pushcount++;
   glTranslatef(x, y, 0);
   glColor4ub(r, g, b, 255);
   glBegin(GL_TRIANGLE_FAN);
@@ -680,7 +697,7 @@ void drawShape(GLfloat x, GLfloat y, GLfloat size, int d, int cnt, int type,
     glEnd();
     break;
   }
-  glPopMatrix();
+  glPopMatrix(); popcount++;
 }
 
 static int ikaClr[2][3][3] = {
@@ -690,7 +707,7 @@ static int ikaClr[2][3][3] = {
 
 void drawShapeIka(GLfloat x, GLfloat y, GLfloat size, int d, int cnt, int type, int c) {
   GLfloat sz, sz2, sz3;
-  glPushMatrix();
+  glPushMatrix(); pushcount++;
   glTranslatef(x, y, 0);
   glColor4ub(ikaClr[c][0][0], ikaClr[c][0][1], ikaClr[c][0][2], 255);
   glDisable(GL_BLEND);
@@ -749,7 +766,7 @@ void drawShapeIka(GLfloat x, GLfloat y, GLfloat size, int d, int cnt, int type, 
     glEnd();
     break;
   }
-  glPopMatrix();
+  glPopMatrix(); popcount++;
 }
 
 #define SHOT_WIDTH 0.1
@@ -762,7 +779,7 @@ static int shtClr[3][3][3] = {
 };
 
 void drawShot(GLfloat x, GLfloat y, GLfloat d, int c, float width, float height) {
-  glPushMatrix();
+  glPushMatrix(); pushcount++;
   glTranslatef(x, y, 0);
   glRotatef(d, 0, 0, 1);
   glColor4ub(shtClr[c][0][0], shtClr[c][0][1], shtClr[c][0][2], 240);
@@ -783,21 +800,21 @@ void drawShot(GLfloat x, GLfloat y, GLfloat d, int c, float width, float height)
   glVertex3f( width,  height, 0);
   glVertex3f(-width,  height, 0);
   glEnd();
-  glPopMatrix();
+  glPopMatrix(); popcount++;
 }
 
 void startDrawBoards() {
   glMatrixMode(GL_PROJECTION);
-  glPushMatrix();
+  glPushMatrix(); pushcount++;
   glLoadIdentity();
   glOrtho(0, 640, 480, 0, -1, 1);
   glMatrixMode(GL_MODELVIEW);
-  glPushMatrix();
+  glPushMatrix(); pushcount++;
   glLoadIdentity();
 }
 
 void endDrawBoards() {
-  glPopMatrix();
+  glPopMatrix(); popcount++;
   screenResized();
 }
 

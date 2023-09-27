@@ -18,6 +18,15 @@ extern "C" {
 }
 
 #include "barragemanager.h"
+#include "bulletml/bulletmlparser.h"
+#include "bulletml/bulletmlparser-tinyxml.h"
+#include "bulletml/bulletmlcommon.h"
+#include "bulletml/bulletmlrunner.h"
+#include "bulletml/bulletmltree.h"
+#include "bulletml/formula.h"
+#include "bulletml/tree.h"
+#include "tinyxml.h"
+
 
 Barrage barragePattern[BARRAGE_TYPE_NUM][BARRAGE_PATTERN_MAX];
 int barragePatternNum[BARRAGE_TYPE_NUM];
@@ -32,7 +41,7 @@ static int readBulletMLFiles(const char *dirPath, Barrage brg[]) {
   int i = 0;
   char fileName[256];
   if ( (dp = opendir(dirPath)) == NULL ) {
-    fprintf(stderr, "Can't open directory: %s\n", dirPath);
+    printf("Can't open directory: %s\n", dirPath);
     exit(1);
   }
   while ((dir = readdir(dp)) != NULL) {
