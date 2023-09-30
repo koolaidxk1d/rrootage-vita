@@ -805,7 +805,7 @@ void drawShot(GLfloat x, GLfloat y, GLfloat d, int c, float width, float height)
 
 void startDrawBoards() {
   glMatrixMode(GL_PROJECTION);
-  glPushMatrix(); pushcount++;
+  //glPushMatrix(); pushcount++;
   glLoadIdentity();
   glOrtho(0, 640, 480, 0, -1, 1);
   glMatrixMode(GL_MODELVIEW);
