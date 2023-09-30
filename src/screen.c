@@ -153,8 +153,8 @@ void initSDL() {
   } else {
     if ( !lowres ) {
       // Use native desktop resolution if -lowres is not specified.
-      screenWidth = 640;
-      screenHeight = 480;
+      screenWidth = 960;
+      screenHeight = 544;
     }
     videoFlags = SDL_OPENGL | SDL_FULLSCREEN;
   } 
